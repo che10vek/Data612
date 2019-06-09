@@ -1,0 +1,122 @@
+---
+title: "Elina Azrilyan - Data 612 - Project 1"
+output: 
+  html_document: 
+    theme: cerulean
+    toc: true
+    toc_depth: 3
+---
+
+This system will recommend Fantasy Books to readers. Book recommendations are difficult because of the large amount of available books, so the system will focus on Fantasy books specifically. The dataset I am using is a .csv file and was build from survey results I asked a few of my friend to fill out. There are 5 users and 9 books and I want to acknowledge the fact that the people all come from the same social group so their results cannot be clasified as random. 
+
+Libraries:
+```{r}
+library(kableExtra)
+```
+
+###1. Reading in the Data.
+```{r}
+BRData <- read.csv(file="https://raw.githubusercontent.com/che10vek/Data612/master/FantasyBookRatings.csv", header=TRUE, sep=",")
+BRData <- BRData[1:5,]
+BRData %>% kable(caption = "Fantasy Book Ratings") %>% kable_styling("striped", full_width = TRUE)
+```
+
+###2. Creating a User Item Matrix and a blank dataframe for testing.
+```{r}
+BRDataMatrix <- BRData
+BRDataTrain <- BRDataMatrix
+BRDataTest<-data.frame()[6:10, ]
+```
+
+###3. Splitting the data into Test and Train Matrixes. 
+
+The Train matrix was created by randomly selecting a position in a matrix and replacing it with "NA" and the Test data set was created by putting those missing values into a new matrix:
+```{r}
+set.seed(3)
+n <- sample(1:5,ncol(BRDataMatrix),replace=T)
+x <- c(1:ncol(BRDataMatrix)-1)
+for (i in x){
+BRDataTrain[n[i],(i+1)]<-NA
+BRDataTest[n[i],(i+1)]<-BRDataMatrix[n[i],(i+1)]
+}
+BRDataTest <- BRDataTest[1:5,2:10]
+BRDataTrain <- BRDataTrain[1:5,2:10]
+
+BRDataTrain %>% kable(caption = "Train Data Set") %>% kable_styling("striped", full_width = TRUE)
+BRDataTest %>% kable(caption = "Test Data Set") %>% kable_styling("striped", full_width = TRUE)
+```
+
+###4. Calculating the raw average (mean) rating for every user-item combination in my Train data.
+```{r}
+#Convert data to numeric
+BRDataTrain<-sapply(BRDataTrain, as.numeric)
+BRDataTest<-sapply(BRDataTest, as.numeric)
+
+RawAverage<-mean(BRDataTrain, na.rm=TRUE)
+
+#Calculating RMSE of the Train set
+errortrain <- RawAverage-BRDataTrain
+RMSETrain <- sqrt(mean((errortrain^2), na.rm=TRUE))
+round(RMSETrain,2)
+
+#Calculating RMSE of the Test set
+errortest <- RawAverage-BRDataTest
+RMSETest <- sqrt(mean((errortest^2), na.rm=TRUE))
+round(RMSETest,2)
+
+```
+
+###5. Using training data, let's calculate the bias for each user and each item.
+```{r}
+UserBias <- round(((rowMeans(BRDataTrain, na.rm=TRUE))-RawAverage),3)
+y<-cbind(BRData,UserBias)
+y <- y[-(2:10)]
+y %>% kable(caption = "User Bias Calculations") %>% kable_styling("striped", full_width = TRUE)
+
+BookBias <- round(((colMeans(BRDataTrain, na.rm=TRUE))-RawAverage),3)
+BookBias %>% kable(caption = "Book Bias Calculations") %>% kable_styling("striped", full_width = TRUE)
+```
+
+###6. Calculating the baseline predictors for every user-item combination.
+
+```{r}
+#Duplicate user bias to populate a 5x9 matrix 
+y<-t(BookBias)
+y<-rbind(y,y,y,y,y)
+#Duplicate book bias to populate a 5x9 matrix 
+z<-cbind(UserBias,UserBias,UserBias,UserBias,UserBias,UserBias,UserBias,UserBias,UserBias)
+#Sum both bias matrixes with raw average to calculate Baseline Predictor
+BRBaseLinePred=round((z+y+RawAverage),2)
+
+#Adding Column Names
+BookNames <- c("Wizard's First Rule", "Harry Potter", "Twilight", "Hitchhiker's Guide to the Galaxy", "Jonathan Strange", "Master and Margarita", "Lord of the Rings", "Song of Ice and Fire", "Hunger Games")
+colnames(BRBaseLinePred) <- BookNames
+
+BRBaseLinePred %>% kable(caption = "Baseline Predictor Calculations") %>% kable_styling("striped", full_width = TRUE)
+```
+
+###7. Calculating the RMSE for the baseline predictors for both training data and test data.
+```{r}
+#Calculating RMSE of the Train set
+errortrain <- BRBaseLinePred-BRDataTrain
+RMSETrain <- sqrt(mean((errortrain^2), na.rm=TRUE))
+round(RMSETrain,2)
+
+#Calculating RMSE of the Test set
+errortest <- BRBaseLinePred-BRDataTest
+RMSETest <- sqrt(mean((errortest^2), na.rm=TRUE))
+round(RMSETest,2)
+```
+
+#Summary
+
+It is evident from the results above that Root Mean Squeare Error (RMSE) is significantly lower when we use Baseline Predictors rather than Raw Averages so that is a more accurate method of predicting user ratings for Fantasy Book list. 
+
+#Predictions
+```{r}
+#Adding User Names to Results
+Users <- c("Lina", "Lilya", "Mariya", "Yulia", "Irene")
+BRBaseLinePred<-cbind(Users,BRBaseLinePred)
+
+BRBaseLinePred %>% kable(caption = "Predictions") %>% kable_styling("striped", full_width = TRUE)
+```

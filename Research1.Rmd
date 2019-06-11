@@ -1,0 +1,29 @@
+---
+title: "Elina Azrilyan - Research Discussion 1"
+output: 
+  html_document: 
+    theme: cerulean
+    toc: true
+    toc_depth: 3
+---
+##Assignment
+Now that we have covered basic techniques for recommender systems, choose one commercial recommender and describe how you think it works (content-based, collaborative filtering, etc). Does the technique deliver a good experience or are the recommendations off-target?
+
+You may also choose one of the three non-personalized recommenders (below) we went over in class and describe the technique and which of the three you prefer to use.
+
+1. Metacritic:  How We Create the Metascore Magic
+2. Rotten Tomatoes: About Rotten Tomatoes
+3. IMDB: FAQ for IMDb Ratings
+
+##Response
+
+Just like the majority of people in our day and age - I spend my evenings being entertained by films and TV shows which are readily available via various streaming services. I would say the majority of my free time is spent chosing something good to watch. When selecting a film or a series - ratings play an important role and my go to website is IMDB. The ratings seems to closely match my personal tastes and "more like this" section is good at identifying films/shows with similar writing. 
+
+It seems that IMDB uses content based filtering as they have data about a large number of titles and their details. IMDB indicates that they use weighted averages for calculating their ratings rather than row average, which allows them to get access to large volumes of user rating data from random people on the internet but prevents those random users from tampering with the results and disrupting the system and influencing results. They don't disclose specific methods they use for weighting results but if I have to guess they factor in the details about user profiles - age, number of reviews, location. Older acounts with consistent number of ratings would probably have a much higher weight than an account openned yesterday which rated 500 films. Users are allowed to change their rating but only the most recent rating is counted. Also, the rating is updated several times per day, not as often as new ratings come in. 
+
+To come up with the suggestions for 'More like this' - they use information such as genres, country of origin, actors, and more. It is possible that the ratings of users with similar tastes are consired when making those suggestions and those results are then further enhanced by factoring in those details (genre, actors, writers).  
+
+####Sources
+https://help.imdb.com/article/imdb/track-movies-tv/ratings-faq/G67Y87TFYYP6TWAV#
+
+https://help.imdb.com/article/imdb/discover-watch/what-is-the-more-like-this-section/GPE7SPGZREKKY7YN?ref_=helpart_nav_11#

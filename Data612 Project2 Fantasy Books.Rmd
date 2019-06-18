@@ -1,0 +1,136 @@
+---
+title: "Elina Azrilyan - Data 612 - Project 2"
+output: 
+  html_document: 
+    theme: cerulean
+    toc: true
+    toc_depth: 3
+---
+
+In this project I am going to implement user-recommendation algorithms for Fantasy book ratings dataset I have collected from 18 people. The dataset is small so it is more of an example and it will be interesting to see how accurate of a recommendation I will be able to produce with that limitation. In this assignment I will explore a few tecniques for creating user recommendations. 
+
+###1. Installing packages and loading our data:
+```{r}
+options(warn=-1)
+if(!"recommenderlab" %in% rownames(installed.packages())){
+install.packages("recommenderlab")}
+suppressMessages(library("ggplot2"))
+
+suppressMessages(library("recommenderlab"))
+suppressMessages(library(kableExtra))
+df <- read.csv(file="https://raw.githubusercontent.com/che10vek/Data612/master/FantasyBookRatings18.csv", header=TRUE, stringsAsFactors = FALSE, sep=",")
+head(df) %>% kable(caption = "Fantasy Book Ratings") %>% kable_styling("striped", full_width = TRUE)
+df <- df[1:17,]
+```
+
+###2. Investigating the data
+
+
+Let's inspect our data. We can see that even though the dataset is small - it has good data so there is no need to clean up anything besides the presence of NAs.
+
+```{r}
+summary(df)%>% kable(caption = "Summary") %>% kable_styling("striped", full_width = TRUE)
+```
+
+Let's create a plot of average book ratings with some data added from Goodreads.com
+
+```{r}
+b = colMeans(df[sapply(df, is.numeric)],na.rm=TRUE) 
+
+#Pulling in ratings from Goodreads.com for these 9 books
+dfgr <- c(4.14, 4.75, 3.89, 4.22, 3.82, 4.31, 4.35, 4.45, 4.33)
+
+qplot(names(df[2:10]), b, xlab = "Book", ylab = "Rating", color = "GoodReads") + theme(axis.text.x = element_text(angle = 45, hjust = 1))+ ggtitle("Average rating for each book") + geom_line(aes(y=dfgr),group=1)
+
+```
+
+We can see pretty similar results, with some exceptions such as Lord of the Rings, Hunger Games and Twilight. This can be explained by the fact that all the data was gathered among my friends and some bias due to similarity of taste is evident. 
+
+###3. Predictions
+The next step is to make some predictions using user-user and item-item colaborative filtering. 
+
+First let's split our data into train and test set.
+
+```{r}
+set.seed(11) #setting the seed to make results reproducible
+
+which_train <- sample(x = c(TRUE, FALSE), size = nrow(df),
+replace = TRUE, prob = c(0.8, 0.2))
+
+data_train <- df[which_train, ]
+data_test <- df[!which_train, ]
+x<-data_test
+
+```
+
+First, let's use IBCF model from "recommenderlab" library, this is a model that uses item-based collaborative filtering.
+
+```{r}
+#Converting Train Data Frame to Real Rating Matrix
+data_train <- as.matrix(data_train)
+data_train <- as(data_train, "realRatingMatrix")
+data_test <- as.matrix(data_test)
+data_test <- as(data_test, "realRatingMatrix")
+
+recc_model <- Recommender(data = data_train, method = "IBCF")
+
+recc_predicted <- predict(object = recc_model, newdata = data_test, n = 2)
+recc_predicted
+```
+
+Here are the Item-Item based recommendations for Users 1:
+```{r}
+#Test Dataset
+x %>% kable(caption = "Test Dataset") %>% kable_styling("striped", full_width = TRUE)
+
+#Predictions
+recc_user_1 <- recc_predicted@items[[1]]
+book_user_1 <- recc_predicted@itemLabels[recc_user_1]
+book_user_1 %>% kable(caption = "User 1") %>% kable_styling("striped", full_width = FALSE)
+
+```
+
+Now let's use UBCF Model:
+```{r}
+#Let's recreate test and train datasets
+set.seed(14) 
+which_train <- sample(x = c(TRUE, FALSE), size = nrow(df),
+replace = TRUE, prob = c(0.8, 0.2))
+
+data_train <- df[which_train, ]
+data_test <- df[!which_train, ]
+x<-data_test
+
+#Converting Train Data Frame to Real Rating Matrix
+data_train <- as.matrix(data_train)
+data_train <- as(data_train, "realRatingMatrix")
+data_test <- as.matrix(data_test)
+data_test <- as(data_test, "realRatingMatrix")
+
+
+recc_model <- Recommender(data = data_train, method = "UBCF")
+recc_model
+
+n_recommended <- 3
+recc_predicted <- predict(object = recc_model, newdata = data_test, n = n_recommended) 
+recc_predicted
+```
+Here are the User-User based recommendations for Users 2 and 3:
+```{r}
+
+#Test Dataset
+x %>% kable(caption = "Test Dataset") %>% kable_styling("striped", full_width = TRUE)
+
+#Predictions
+
+recc_user_2 <- recc_predicted@items[[2]]
+book_user_2 <- recc_predicted@itemLabels[recc_user_2]
+book_user_2 %>% kable(caption = "User 2") %>% kable_styling("striped", full_width = FALSE)
+
+recc_user_2 <- recc_predicted@items[[3]]
+book_user_2 <- recc_predicted@itemLabels[recc_user_2]
+book_user_2 %>% kable(caption = "User 3") %>% kable_styling("striped", full_width = FALSE)
+```
+
+###4. Conclusion
+Both UBCF with IBCF results appear to be accurate - they both recommend books which users have not preiously read and books that have a high rating. UBCF is agreed to be more accurate for small dataset - so I will conclude that UBCF recommendation are better for my purposes. This project can be further expanded by adding users and increasing the scope beyond fantasy books. It would be interested to see how adding 'tag' type data can improve recommendations. 

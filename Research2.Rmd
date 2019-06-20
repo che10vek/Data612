@@ -1,0 +1,20 @@
+---
+title: "Elina Azrilyan - Research Discussion 2"
+output: 
+  html_document: 
+    theme: cerulean
+    toc: true
+    toc_depth: 3
+---
+##Assignment
+For this discussion item, please watch the following talk and summarize what you found to be the most important or interesting points. The first half will cover some of the mathematical techniques covered in this unit's reading and the second half some of the data management challenges in an industrial-scale recommendation system.
+
+Link: https://www.youtube.com/watch?v=3LBgiFch4_g
+
+##Response
+
+The speaker goes over implementation and challenges of a recommendation system used by a major music recommendation engine - Spotify. There are several companies on the market that offer similar services to customers, so it is intersting to see what method this particular company uses. 
+
+One of the most important points for me was the demostration of how the techniques we are discussing in class are applied to a large-scale environment and what tools specifically the company uses. It was also good to have an example of the application for the mathematical techniques as it is not always easy to connect the dots when such complex mathematical formulas are involved. 
+
+Comparison of ALS running times for Hadoop and 2 options for Spark was very helpful as well to be able to put the challenges outlined by the speaker earlier in the presentation into more specific context.

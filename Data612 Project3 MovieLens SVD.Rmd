@@ -1,0 +1,112 @@
+---
+title: "Elina Azrilyan - Data 612 - Project 3"
+output: 
+  html_document: 
+    theme: cerulean
+    toc: true
+    toc_depth: 3
+---
+
+####Project Description
+
+The goal of this assignment is give you practice working with Matrix Factorization techniques. Your task is implement a matrix factorization method—such as singular value decomposition (SVD) or Alternating Least Squares (ALS)—in the context of a recommender system. You may approach this assignment in a number of ways. You are welcome to start with an existing recommender system written by yourself or someone else. Remember as always to cite your sources, so that you can be graded on what you added, not what you found. SVD can be thought of as a pre-processing step for feature engineering. You might easily start with thousands or millions of items, and use SVD to create a much smaller set of “k” items (e.g. 20 or 70).
+
+####Installing packages:
+```{r}
+options(warn=-1)
+if(!"recommenderlab" %in% rownames(installed.packages())){
+install.packages("recommenderlab")}
+suppressMessages(library("ggplot2"))
+suppressMessages(library("recommenderlab"))
+suppressMessages(library("dplyr"))
+suppressMessages(library(kableExtra))
+
+```
+
+####Loading dataset
+I am going to use MovieLense Dataset available as part of the recommenderlab package. First, let's take a look at our data - it is a sparse ratings matrix.
+```{r}
+data_package <- data(package = "recommenderlab")
+data("MovieLense")
+
+y<-as.matrix(MovieLense@data[1:10,1:10])
+y  %>% kable(caption = "Data") %>% kable_styling("striped", full_width = TRUE)
+```
+
+####Inspecting the data
+
+I will take a look at the number of ratings per user
+```{r}
+ratings_movies <- MovieLense #[rowCounts(MovieLense) > 50, colCounts(MovieLense) > 100] 
+rating_cnt_per_member <- rowCounts(ratings_movies)
+qplot(rating_cnt_per_member) + stat_bin(binwidth = 0.1) +
+ggtitle("Number of ratings per user")
+```
+
+Now, I am going to select the data from high count of ratings per user and movie only. I am going to drop any user who rated less than 50 movies and any movie with less than 100 ratings. 
+```{r}
+ratings_movies <- MovieLense[rowCounts(MovieLense) > 50, colCounts(MovieLense) > 100] 
+
+ratings_movies
+
+average_ratings_per_user <- rowMeans(ratings_movies)
+
+qplot(average_ratings_per_user) + stat_bin(binwidth = 0.1) +
+ggtitle("Distribution of the average rating per user")
+```
+
+It looks like the average rating is between 3.5 and 4. 
+
+####Splitting the data into train/test sets
+Let's split our data into train and test set using 80% to 20% split.
+
+```{r}
+which_train <- sample(x = c(TRUE, FALSE), size = nrow(ratings_movies),
+replace = TRUE, prob = c(0.8, 0.2))
+
+data_train <- ratings_movies[which_train, ]
+data_test <- ratings_movies[!which_train, ]
+
+```
+
+####Using SVD for recommendations
+
+I am going to use recommenderlab package and k=20 which appears to be sufficient after a few experimantal values. 
+
+```{r}
+set.seed(444)
+recom <- Recommender(data_train, method = "SVD")
+recom
+
+pred <- predict(object = recom, newdata = data_test, type = "ratings")
+
+es <- evaluationScheme(pred, method="cross-validation",
+        k=20, given = 5)
+        
+ev <- evaluate(es, "SVD", type="ratings")
+avg(ev)
+```
+
+Here is a sample 10 by 10 prediction matrix
+```{r}
+set.seed(444)
+pred_ratings <- predict(recom, data_test, type = "ratingMatrix")
+
+x<-as.matrix(getRatingMatrix(pred_ratings)[1:10,1:10])
+x %>% kable(caption = "Predictions") %>% kable_styling("striped", full_width = TRUE)
+
+```
+
+Here are the top 10 recomendations for User 1
+```{r}
+set.seed(444)
+pred2 <- predict(object = recom, newdata = data_test, type = "topNList")
+
+recc_user_1 <- pred2@items[[14]]
+movies_user_1 <- pred2@itemLabels[recc_user_1]
+movies_user_1 %>% kable(caption = "User1 Predictions") %>% kable_styling("striped", full_width = TRUE)
+```
+
+####Summary
+In conclusion, SVD appears to be an effecting technique with a pretty good RMSE result and the list of film recommendations appears to be consistent with overall film ratings - a lot of the film recommendations are top rated, critically acclaimed films which is impressive considering a range amount of movies in the MovieLense Dataset. 
+

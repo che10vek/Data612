@@ -1,0 +1,20 @@
+---
+title: "Elina Azrilyan - Research Discussion 3"
+output: 
+  html_document: 
+    theme: cerulean
+    toc: true
+    toc_depth: 3
+---
+##Assignment
+As more systems and sectors are driven by predictive analytics, there is increasing awareness of the possibility and pitfalls of algorithmic discrimination. In what ways do you think Recommender Systems reinforce human bias? Reflecting on the techniques we have covered, do you think recommender systems reinforce or help to prevent unethical targeting or customer segmentation?  Please provide one or more examples to support your arguments.
+
+##Response
+
+I believe that recommender systems reinforce human bias in a variety of ways. The presenter brings up some very good points about potential consequences of improper use of recommender systems: https://www.youtube.com/watch?v=MqoRzNhrTnQ
+
+For instance the type if news you are exposed to can influence the way you see the world. When I was on vacation recently my travel companion kept telling me horific news stories about murders and fires. I asked, why she would be checking those terrible news while on vacation in paradise. Her response was that she does not check it - her phone automatically shows her these things. My phone does not behave in such a way because I don't encourage it by ever clicking on such stories. I get articles about business and technology. 
+
+Another example would be product availability that could impact customers. If a recommender system is not properly used - it can result in preventing people from accessing certain things if it is viewed as financially not viable. 
+
+I believe that the techniques we are discussing in class have the potential to minimize bias since they are mostly based on math rather than feelings but they have to be treated with care.

@@ -1,0 +1,21 @@
+---
+title: "Elina Azrilyan - Research Discussion 4"
+output: 
+  html_document: 
+    theme: cerulean
+    toc: true
+    toc_depth: 3
+---
+##Assignment
+
+Mitigating the Harm of Recommender Systems
+
+Read one or more of the articles below and consider how to counter the radicalizing effects of recommender systems or ways to prevent algorithmic discrimination.
+
+##Response
+
+The article "YouTube, the Great Radicalizer" by ZEYNEP TUFEKCI offers a lot of information on the Harm that a Recommender System can cause. Youtube is a major platform a lot of people spend a lot of their time on and they have a responsibility to customers. According to the article: "Given its billion or so users, YouTube may be one of the most powerful radicalizing instruments of the 21st century." 
+
+The author is describing a peculiar pattern in her Youtube recommendations which took some simple political research to disturbing levels. Zeynep states: "YouTube was recommending content that was more and more extreme than the mainstream political fare I had started with." The same pattern emerged with all other topics - not just politics. 
+
+I agree that the issue is that people are more likely to pay attention to a more extreme or inflamatory content, so is it surprising that recommender algorythms cater to that? In our society, oversaturated with information, people are forced to find more and more ways to stand out to get publicity. There are millions of kitten videos out there, how do you make yours a hit? I believe the scientists working on algorythms should be actively aware of biases in their work and invest time and money to counter their effects. That is the reason machines learning cannot simply take over this task. Perhaps, the government should create some regulations to encourage responsible behavior from companies, but that can be tricky as you might get into the territory of censorship and freedom of speech. Maybe an independent agency needs to be established to monitor responsible behavior. 

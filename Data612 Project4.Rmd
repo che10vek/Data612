@@ -1,0 +1,174 @@
+---
+title: "Elina Azrilyan - Data 612 - Project 4"
+output: 
+  html_document: 
+    theme: cerulean
+    toc: true
+    toc_depth: 3
+---
+
+####Project Description
+
+#####Deliverables
+
+1. As in your previous assignments, compare the accuracy of at least two recommender system algorithms against your offline data.
+
+2. Implement support for at least one business or user experience goal such as increased serendipity, novelty, or diversity.
+
+3. Compare and report on any change in accuracy before and after you’ve made the change in #2.
+
+4. As part of your textual conclusion, discuss one or more additional experiments that could be performed and/or metrics that could be evaluated only if online evaluation was possible. Also, briefly propose how you would design a reasonable online evaluation environment.
+
+#### Dataset
+
+I am going to use Jester5K Dataset available as part of the recommenderlab package. First, let's install packages and take a look at our data - it is a sparse ratings matrix. I am going to compare the accuracy of several recommender system algorythms - SVD, UBCF, and IBCF and evaluate their performance for this data. 
+
+####Installing packages:
+```{r}
+options(warn=-1)
+if(!"recommenderlab" %in% rownames(installed.packages())){
+install.packages("recommenderlab")}
+suppressMessages(library("ggplot2"))
+suppressMessages(library("recommenderlab"))
+suppressMessages(library(kableExtra))
+
+```
+
+####Loading dataset
+
+Let's visually inspect the data by viewing a 10x10 sample. 
+
+```{r}
+data_package <- data(package = "recommenderlab")
+data("Jester5k")
+
+y<-as.matrix(Jester5k@data[1:10,1:10])
+y  %>% kable(caption = "Data") %>% kable_styling("striped", full_width = TRUE)
+```
+
+####Inspecting the data
+
+Let's take a look at the number of ratings and the possible rating values and their distribution. This is a 5000x100 ratings matrix that includes 362106 ratings. We see that on average users have rated 72 jokes out of a 100 and a minimum of 32 jokes.
+
+```{r}
+Jester5k
+
+summary(rowCounts(Jester5k)) 
+
+hist(getRatings(Jester5k),main="Joke ratings")
+```
+
+The next step is to take a look at the number of ratings per user.
+
+```{r}
+jratings <- Jester5k
+rating_cnt_per_member <- rowCounts(jratings)
+qplot(rating_cnt_per_member) + stat_bin(binwidth = 0.1) +
+ggtitle("Number of ratings per user")
+```
+
+Now, I am going to visualize the data to see the rating distribution, the data is beautifully and normally distributed. 
+
+```{r}
+average_ratings_per_user <- rowMeans(jratings)
+
+qplot(average_ratings_per_user) + stat_bin(binwidth = 0.1) +
+ggtitle("Distribution of the average rating per user")
+```
+
+####Splitting the data into train/test sets
+
+Let's split our data into train and test set using 80% to 20% split. After much consideration I am going to consider 3 a good rating. It can be argued that on a scale of -10 to 10 all data above 0 should be considered good, but I want to set my standards higher than that.
+
+```{r}
+set.seed(11)
+eval <- evaluationScheme(jratings, method = "split", train = 0.8, given=25, goodRating = 3)
+train <- getData(eval, "train")
+known <- getData(eval, "known")
+unknown <- getData(eval, "unknown")
+```
+
+####Using SVD, IBCF, and UCBF for recommendations
+
+I am going to compare 3 recommendation algorythms: SVD, Item Based Collaborative Filtering (IBCF), and User Based Collaborative Filtering (UBCF). 
+
+```{r}
+set.seed(44)
+recom <- Recommender(train, method = "SVD")
+pred <- predict(object = recom, newdata = known, type = "ratings")
+eval_accuracy_SVD <- calcPredictionAccuracy(pred, unknown, byUser = FALSE)
+
+recom <- Recommender(train, method = "IBCF")
+pred <- predict(object = recom, newdata = known, type = "ratings")
+eval_accuracy_IBCF <- calcPredictionAccuracy(pred, unknown, byUser = FALSE)
+
+recom <- Recommender(train, method = "UBCF")
+pred <- predict(object = recom, newdata = known, type = "ratings")
+eval_accuracy_UBCF <- calcPredictionAccuracy(pred, unknown, byUser = FALSE)
+
+rbind(eval_accuracy_SVD, eval_accuracy_IBCF, eval_accuracy_UBCF)
+```
+
+The most effective method with the lowest Root Mean Squared Error(RMSE) is SVD and the method with the highest RMSE is IBCF. 
+
+####Implementing support for at least one business or user experience goal
+
+I will narrow my dataset down to only the users that rated more than 80 jokes and the jokes that have more that 1000 ratings in order to improve the quality of my recommendations.
+
+```{r}
+jratings <- Jester5k[rowCounts(Jester5k) > 80, colCounts(Jester5k) > 1000] 
+jratings
+
+set.seed(11)
+eval <- evaluationScheme(jratings, method = "split", train = 0.8, given=25, goodRating = 7)
+train <- getData(eval, "train")
+known <- getData(eval, "known")
+unknown <- getData(eval, "unknown")
+
+set.seed(44)
+recom <- Recommender(train, method = "SVD")
+pred <- predict(object = recom, newdata = known, type = "ratings")
+eval_accuracy_SVD_2 <- calcPredictionAccuracy(pred, unknown, byUser = FALSE)
+
+recom <- Recommender(train, method = "IBCF")
+pred <- predict(object = recom, newdata = known, type = "ratings")
+eval_accuracy_IBCF_2 <- calcPredictionAccuracy(pred, unknown, byUser = FALSE)
+
+recom <- Recommender(train, method = "UBCF")
+pred <- predict(object = recom, newdata = known, type = "ratings")
+eval_accuracy_UBCF_2 <- calcPredictionAccuracy(pred, unknown, byUser = FALSE)
+
+#Results with updated data
+rbind(eval_accuracy_SVD_2, eval_accuracy_IBCF_2, eval_accuracy_UBCF_2)
+
+```
+After I have made that change User Based Collaborative filtering became a more effective algorythm. 
+
+#### Sample top Recommendations for a user
+
+Here are the top 3 recomendations for a user:
+
+```{r}
+set.seed(444)
+pred2 <- predict(object = recom, newdata = unknown, type = "topNList", n = 3)
+
+recc_user_1 <- pred2@items[[1]]
+movies_user_1 <- pred2@itemLabels[recc_user_1]
+movies_user_1 %>% kable(caption = "User1 Predictions") %>% kable_styling("striped", full_width = TRUE)
+```
+
+Let's look at these recommended jokes, by simple observation - it appears that all three have a common theme of professional humor and even though it is subjective - could be considered sarcastic so it looks like it is a good recommendation.
+
+```{r}
+cat(JesterJokes[movies_user_1[1]])
+#
+cat(JesterJokes[movies_user_1[2]])
+#
+cat(JesterJokes[movies_user_1[3]])
+
+```
+
+####Summary
+In conclusion, SVD  and User Based Collaborative Filtering appear to be the most effective techniques with better RMSE results than Item Based Collaborative Filtering and the recommendations appear to be consistent and reasonable. A lot of the jokes I have seen in the dataset were pretty bad - so the fact that these recommendations are pretty funny in my opinion is a good sign. Sense of humor varies dramatically and it is not an easy things to predict so I am impressed with my results. 
+
+If online evaluation was possible, I imagine that our results would be improved significantly. Since the dataset was gathered a while ago I imagine the sort of things people find humorous might change from one decade to another. Also, I assume that the joke selection was done by the scientists performing the experiment, based on the amount of science related jokes... Perhaps, allowing people to contribute jokes might produce a more diverse dataset and recommendations. 

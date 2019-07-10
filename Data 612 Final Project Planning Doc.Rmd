@@ -1,0 +1,15 @@
+---
+title: "Elina Azrilyan - Final Project Planning Document"
+output: 
+  html_document: 
+    theme: cerulean
+    toc: true
+    toc_depth: 3
+---
+
+##Plan
+
+My plan is to build out a book recommendation system using the Goodreads Dataset. There are close to $6M ratings in the dataset so I might need to focus on the subset of it to keep the analysis doable on a laptop computer. This recommender system will recommend books to users based on their previous ratings. I plan to use SVD as well as IBCF and UBCF and compare their performance for this dataset. As with all book ratings datasets - this dataset is pretty sparse, there are 10K books and 53K users rating so 6M our of 530M potential ratings is about 99% sparse. 
+
+The data can be found here:
+https://github.com/zygmuntz/goodbooks-10k

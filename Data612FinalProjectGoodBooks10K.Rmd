@@ -1,0 +1,216 @@
+---
+title: "Elina Azrilyan - Final Project"
+output: 
+  html_document: 
+    theme: cerulean
+    toc: true
+    toc_depth: 3
+---
+###Overview
+I will build out a book recommendation system using the Goodreads 10K dataset which contains book ratings on a scale of 1 to 5. I will use SVD as well as Item Based Collaborative Filtering (IBCF) and User Based Collaborative Filtering (UBCF) and Popular methods and compare their performance for this book ratings dataset. As with all book ratings datasets - this dataset is pretty sparse, there are 10K books and 53K users rating so 6M out of 530M potential ratings is about 99% sparse. There are close to 6 million  ratings in the dataset so I will need to focus on the subset of it to keep the analysis less time consuming.
+
+The data can be found here:
+https://github.com/zygmuntz/goodbooks-10k
+
+###Analysis
+
+####Loading Packages
+
+Loading recommenderlab, dplyr, ggplot2, and kableExtra packages. 
+
+```{r}
+options(warn=-1)
+suppressMessages(library("kableExtra"))
+suppressMessages(library("ggplot2"))
+suppressMessages(library("recommenderlab"))
+suppressMessages(library("dplyr"))
+```
+
+####Loading the data
+In the code below we are loading the data from two csv files that include Ratings and detailed Book Information. 
+```{r}
+BX10K <- read.csv(file="https://raw.githubusercontent.com/zygmuntz/goodbooks-10k/master/ratings.csv", header=TRUE, sep=",", stringsAsFactors = F)
+BX10Ktitles <- read.csv("https://raw.githubusercontent.com/zygmuntz/goodbooks-10k/master/books.csv", header=TRUE, sep=",", stringsAsFactors = F)
+```
+
+#### Inspecting Ratings dataset
+Let's inspect the ratings dataset with "dim" and "summary" functions. We see that there are almost 6 million ratings and the Average rating is 3.92 with the Median rating of 4 which tells me that the overall books are rated fairly highly and the data is likely evenly distributed without significant variations. The ratings are on a scale of 1 to 5.
+
+```{r}
+dim(BX10K)
+summary(BX10K$rating)
+head(BX10K, 10) %>% kable(caption = "Ratings Data") %>% kable_styling("striped", full_width = TRUE)
+```
+
+#### Inspecting Book Titles data
+
+Now lets inspect out Book Titles dataset. The dataset includes some intersting details we can explore, such as publication year, average ratings, and languages. 
+
+```{r}
+dim(BX10Ktitles)
+
+head(BX10Ktitles, 10) %>% kable(caption = "Books Data") %>% kable_styling("striped", full_width = TRUE)
+```
+
+##### Top 10 Highest Rating
+Let's find the Top 10 highest rated books. It is interesting that pretty much all of these are part of a series rather than standalone books. Also, some of these titles are part of the same series and some are overlapping. 
+
+```{r}
+BX10Ktitles %>% 
+  arrange(desc(average_rating)) %>% 
+  top_n(10,wt = average_rating) %>% 
+  select(title, original_publication_year, ratings_count, average_rating) %>%
+  kable(caption = "Average Ratings") %>% kable_styling("striped", full_width = TRUE)
+```
+
+##### Highest number of ratings
+Now I want to take a look at the books with the highest number of ratings regardless of the ratings numbers, I am going to assume that those books have the highest number of readers whether those readers enjoyed them or not. My assumtion is correct as all those items are bestsellers. 
+
+```{r}
+BX10Ktitles %>% 
+  arrange(desc(ratings_count)) %>% 
+  top_n(10,wt = ratings_count) %>% 
+  select(title, original_publication_year, ratings_count, average_rating) %>%
+  kable(caption = "Ratings Count") %>% kable_styling("striped", full_width = TRUE)
+```
+
+##### Highest number of 1 star ratings.
+
+Now I want to take a look at the books with the highest number of 1 star ratings to see which books are most disliked. 
+
+```{r}
+BX10Ktitles %>% 
+  arrange(desc(ratings_1)) %>% 
+  top_n(10,wt = ratings_1) %>% 
+  select(title, original_publication_year, ratings_1, average_rating) %>%
+  kable(caption = "Worst Rated Books") %>% kable_styling("striped", full_width = TRUE)
+```
+
+Interstingly enough this list includes one of my personal least favorite books "Lord of the Flies" as well as ALL the books from my beloved "Twilight Series" (don't judge if you haven't read it). I guess the high number of 1 star ratings also says something about how popular the book is. 
+
+#####Publication Year
+Let's take a look at the data by year
+```{r}
+ggplot(data = BX10Ktitles, mapping = aes(x = original_publication_year, y = average_rating)) +
+    geom_point(alpha = 0.1, aes(color = language_code)) +
+    xlim(1800,2020)
+```
+
+We can see that there are a lot more books in the dataset from recent years, however the quality seemed to have gone down, as there are a lot more books from recent 2 decades rated below 3.5 stars, there are hardly any before 2000. 
+
+#### Language
+
+Let's see if there is a relationship between book language and average rating.
+
+```{r}
+ggplot(data = BX10Ktitles, mapping = aes(y = average_rating, x = language_code)) +
+  geom_boxplot() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+It looks like books have pretty high ratings in general regardless of the language but some patterns are apparent. It looks that the more books we have in certain languages the lower the average rating is. Some very highly rated languages have a very low count of books.
+
+####Recomendatgions
+
+The next step is to develop some recommendation models and avaluate their perormance.
+
+#####Creating a RealRatingMartix
+Now we can create a real rating matrix to make the data easier to work with. 
+
+```{r}
+BXMatrix <- as(BX10K, "realRatingMatrix")
+dim(BXMatrix@data)
+```
+
+Let's take a look at the histogram of ratings distribution. 
+
+```{r}
+hist(getRatings(BXMatrix), main="Book ratings", breaks = c(0:5), col = c("red", "orange", "gray", "blue", "green"))
+```
+
+Let's decrease the size of our dataset by randomly selecting 30% of our data. Ideally I wanted to grab 30% of users rather than 30% of random data but that was slowing down my machine too much. Keeping in mind the size of my dataset - 30% of the data will work well enough. 
+
+```{r}
+BX10KSample<-BX10K %>% sample_frac(0.3, replace = FALSE)
+BXMatrix <- as(BX10KSample, "realRatingMatrix")
+```
+
+I will narrow my dataset down to only the users that rated more than 50 books and the books that have more that 100 ratings in order to improve the quality of my recommendations.  
+
+```{r}
+BX_Ratings <- BXMatrix[rowCounts(BXMatrix) > 50, colCounts(BXMatrix) > 100]
+BX_Ratings
+```
+
+#### Test/Train Split
+
+Let's split the data into Test and Train data set using 75%/25% split.
+
+```{r}
+set.seed(11)
+eval <- evaluationScheme(BX_Ratings, method = "split", train = 0.75, given=5, goodRating = 3)
+train <- getData(eval, "train")
+known <- getData(eval, "known")
+unknown <- getData(eval, "unknown")
+```
+
+#### Comparing SVD/IBCF/UBCF/Popular Methods
+
+Let's compare SVD, IBCF, and UBCF Recomender - we will use all 4 methods and compare the RMSE results.
+
+```{r}
+set.seed(44)
+recomSVD <- Recommender(train, method = "SVD")
+pred <- predict(object = recomSVD, newdata = known, type = "ratings")
+eval_accuracy_SVD <- calcPredictionAccuracy(pred, unknown, byUser = FALSE)
+```
+
+```{r}
+set.seed(44)
+recomIBCF <- Recommender(train, method = "IBCF")
+pred <- predict(object = recomIBCF, newdata = known, type = "ratings")
+eval_accuracy_IBCF <- calcPredictionAccuracy(pred, unknown, byUser = FALSE)
+```
+
+```{r}
+set.seed(44)
+recomUBCF <- Recommender(train, method = "UBCF")
+pred <- predict(object = recomUBCF, newdata = known, type = "ratings")
+eval_accuracy_UBCF <- calcPredictionAccuracy(pred, unknown, byUser = FALSE)
+```
+
+```{r}
+set.seed(44)
+recomPOP <- Recommender(train, method = "POPULAR")
+pred <- predict(object = recomPOP, newdata = known, type = "ratings")
+eval_accuracy_POP <- calcPredictionAccuracy(pred, unknown, byUser = FALSE)
+```
+
+```{r}
+rbind(eval_accuracy_SVD, eval_accuracy_IBCF, eval_accuracy_UBCF, eval_accuracy_POP)
+```
+
+SVD has the best results and was the fastest of the 4 methods and has a relatively low RMSE. UBCF and Popular are the 2nd best option as they have an even lower RMSE but took a significantly longer amount of time. Both IBCF took a very long time to calculate and has the worst RMSE result. 
+
+####Recommendaitons
+
+Next and final step is to make some recommendations. We will take user 1 and will get top 10 books recommendaitons based on their rating. 
+
+```{r}
+set.seed(44)
+pred2 <- predict(object = recomSVD, newdata = unknown, type = "topNList", n = 10)
+
+recc1 <- pred2@items[[1]]
+recc_book_user_1 <- pred2@itemLabels[recc1]
+
+recc_book_user_1 <- as.data.frame(recc_book_user_1)
+colnames(recc_book_user_1) <- "book_id"
+recc_book_user_1 %>% kable(caption = "User1 Predictions") %>% kable_styling("striped", full_width = TRUE)
+
+book_labels <- merge(recc_book_user_1, BX10Ktitles,
+                             by = "book_id", all.x = TRUE, all.y = FALSE, sort = FALSE)
+book_labels %>% kable(caption = "Books Recommendations") %>% kable_styling("striped", full_width = TRUE)
+```
+
+###Conclusions
+ 
+ In summary, the good reads dataset was a very intersting dataset to explore and the tools we have been equiped with during the semester were very useful for exploring, visualizing, and building a recommendation system with this data. Some observations are that computational limiations are a serious concern and alternative solutions need to be considered for future analysis. Another observation, SVD seems to be the most effective method for making predicitons. Alternatively, IBCF is a very time consuming method which doesn't have as good of a result, so it seems that it is better to compare user tastes vs items when building a recommendaiton system. 
